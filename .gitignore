@@ -1,0 +1,3 @@
+*.stubs
+.idea/
+__pycache__/
