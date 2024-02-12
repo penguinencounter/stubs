@@ -50,7 +50,8 @@ def main(path, dry_run, no_backup):
             extra={"markup": True, "highlighter": None},
         )
         exit(1)
-    logger.info(tokens)
+    for token in tokens:
+        logger.info(token)
 
 
 if __name__ == "__main__":

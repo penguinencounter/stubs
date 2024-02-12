@@ -31,22 +31,31 @@ class TokenType(enum.Enum):
     IDENTIFIER = enum.auto()
     STRING_SQ = enum.auto()
     STRING_DQ = enum.auto()
+    INT = enum.auto()
+    FLOAT = enum.auto()
 
+    COMMA = enum.auto()
     BLOCK_OPEN = enum.auto()
     BLOCK_CLOSE = enum.auto()
     VAR_REFERENCE = enum.auto()
+    NEXT_LINE = enum.auto()
+
+    YES = enum.auto()
+    NO = enum.auto()
+    TO = enum.auto()
 
 
 class Token:
-    def __init__(self, token_type: TokenType, lexeme: str, value: Optional[Any] = None):
+    def __init__(self, token_type: TokenType, position: int, lexeme: str, value: Optional[Any] = None):
         self.token_type = token_type
+        self.position = position
         self.lexeme = lexeme
         self.value = value
 
     def __repr__(self):
         if self.value is not None:
-            return f"({self.token_type.name} token: {self.lexeme!r} -> {self.value!r})"
-        return f"({self.token_type.name} token: {self.lexeme!r})"
+            return f"({self.token_type.name} token at {self.position}: {self.lexeme!r} -> {self.value!r})"
+        return f"({self.token_type.name} token at {self.position}: {self.lexeme!r})"
 
 
 class ExpectationFailed(Exception):
@@ -126,7 +135,7 @@ class Scanner:
         return self.stream[start : self.cursor]
 
     def skip_spaces(self):
-        while not self.is_eof() and self.peek().isspace():
+        while not self.is_eof() and self.peek() in ' \t':
             self.next()
 
 
@@ -135,7 +144,7 @@ def scan_comment(s: Scanner) -> Token:
     s.expect("#")
     s.match(" ")
     message = s.read_until({"\n"})
-    return Token(TokenType.COMMENT, s.stream[mark : s.cursor], message)
+    return Token(TokenType.COMMENT, mark, s.stream[mark: s.cursor], message)
 
 
 def scan_string(s: Scanner, terminator: str) -> Token:
@@ -154,10 +163,12 @@ def scan_string(s: Scanner, terminator: str) -> Token:
             break
         else:
             contents += c
-    return Token(TokenType.STRING_SQ, s.stream[mark : s.cursor], contents)
+    string_type = TokenType.STRING_DQ if terminator == '"' else TokenType.STRING_SQ
+    return Token(string_type, mark, s.stream[mark: s.cursor], contents)
 
 
 def scan_id(s: Scanner) -> Token:
+    mark = s.cursor
     try:
         identifier = s.read_while(
             set(string.ascii_lowercase)
@@ -167,14 +178,14 @@ def scan_id(s: Scanner) -> Token:
         )
     except ExpectationFailed as e:
         raise ExpectationFailed('an identifier (a-zA-Z0-9_)', e.actual, e.position)
-    return Token(TokenType.IDENTIFIER, identifier, identifier)
+    return Token(TokenType.IDENTIFIER, mark, identifier, identifier)
 
 
 def scan_var_reference(s: Scanner) -> Token:
     mark = s.cursor
     s.expect("$")
     identifier = scan_id(s)
-    return Token(TokenType.VAR_REFERENCE, s.stream[mark : s.cursor], identifier)
+    return Token(TokenType.VAR_REFERENCE, mark, s.stream[mark: s.cursor], identifier)
 
 
 def scan(input_string: str) -> list[Token]:
@@ -183,20 +194,45 @@ def scan(input_string: str) -> list[Token]:
     s = Scanner(input_string)
     while not s.is_eof():
         c = s.peek()
-        if c == "#":
+        if c == '\r':
+            s.next()
+            s.match('\n')
+            tokens.append(Token(TokenType.NEXT_LINE, s.cursor, '\r\n'))
+        elif c == "\n":
+            tokens.append(Token(TokenType.NEXT_LINE, s.cursor, s.next()))
+        elif c == "#":
             tokens.append(scan_comment(s))
         elif c == "{":
-            tokens.append(Token(TokenType.BLOCK_OPEN, s.next()))
+            tokens.append(Token(TokenType.BLOCK_OPEN, s.cursor, s.next()))
         elif c == "}":
-            tokens.append(Token(TokenType.BLOCK_CLOSE, s.next()))
+            tokens.append(Token(TokenType.BLOCK_CLOSE, s.cursor, s.next()))
         elif c == "'":
             tokens.append(scan_string(s, "'"))
         elif c == '"':
             tokens.append(scan_string(s, '"'))
         elif c == "$":
             tokens.append(scan_var_reference(s))
+        elif c == ",":
+            tokens.append(Token(TokenType.COMMA, s.cursor, s.next()))
         else:
-            tokens.append(scan_id(s))
+            ident = scan_id(s)
+            keywords = {
+                "yes": TokenType.YES,
+                "on": TokenType.YES,
+                "no": TokenType.NO,  # Norway token
+                "off": TokenType.NO,
+                "to": TokenType.TO,
+            }
+            if ident.lexeme in keywords:
+                tokens.append(Token(keywords[ident.lexeme], ident.position, ident.lexeme))
+            else:
+                tokens.append(ident)
+        if len(tokens) >= 2:
+            if tokens[-2].token_type == TokenType.TO and tokens[-1].token_type != TokenType.VAR_REFERENCE:
+                raise ExpectationFailed(
+                    "after 'to', a variable ($...)", tokens[-1].lexeme, tokens[-1].position
+                )
+
         s.skip_spaces()
     return tokens
 
