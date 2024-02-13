@@ -173,11 +173,11 @@ def scan_id(s: Scanner) -> Token:
         identifier = s.read_while(
             set(string.ascii_lowercase)
             | set(string.ascii_uppercase)
-            | set("0123456789_"),
+            | set("0123456789_-"),
             False,
         )
     except ExpectationFailed as e:
-        raise ExpectationFailed('an identifier (a-zA-Z0-9_)', e.actual, e.position)
+        raise ExpectationFailed('an identifier (a-zA-Z0-9_-)', e.actual, e.position)
     return Token(TokenType.IDENTIFIER, mark, identifier, identifier)
 
 
