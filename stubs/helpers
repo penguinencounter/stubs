@@ -8,8 +8,10 @@ new_desktop() {
 
     Category="$4"
 
+    FlatName=$(echo "$Name" | tr '[:upper:]' '[:lower:]' | tr ' !@#$%^&*()=_+[]{};,./<>?`~' '-')
+
     if [ -z "$Category" ] ; then
-        Category="Application"
+        Category=""
     fi
     read -r -d '' DesktopEntry <<EOF
 [Desktop Entry]
@@ -17,6 +19,12 @@ Name=$Name
 Comment=$Comment
 Exec=$TargetFile
 Icon=$HOME/bin/launchers/$(basename "$TargetFile").png
+Type=Application
+Version=1.0
+Categories=$Category;
+Terminal=false
+StartupWMClass=$FlatName
+StartupNotify=true
 EOF
     echo "$DesktopEntry" > "$HOME/bin/launchers/$(basename "$TargetFile").desktop"
     chmod +x "$HOME/bin/launchers/$(basename "$TargetFile").desktop"
