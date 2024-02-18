@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+source "helpers"
+
+if [ -e "$HOME/bin/ln/drawio" ] ; then
+    echo "${GREEN}drawio is already installed.${RESET}" >&2
+    exit 0
+fi
+
+if ! which yq >/dev/null ; then
+    echo "Error: yq is not installed. Check the installation sort order?" >&2
+    exit 1
+fi
+
+yq=$(which yq)
+jq=$(which jq)
+DRAWIO_TMP=$(mktemp -d)
+
+echo "${BLUE}acquiring drawio linux manifest...${RESET}" >&2
+curl 'https://github.com/jgraph/drawio-desktop/releases/latest/download/latest-linux.yml' -Lo "$DRAWIO_TMP/latest.yml"
+# Transform into something jq can understand
+$yq -p yaml -o json "$DRAWIO_TMP/latest.yml" > "$DRAWIO_TMP/latest.json"
+# Query the json for the latest linux release
+actual_filename=$($jq -r '[.files | map(select(.url | endswith("AppImage")))][0][0].url' "$DRAWIO_TMP/latest.json")
+
+echo "${BLUE}acquiring drawio: $actual_filename...${RESET}" >&2
+# Download the actual file
+curl 'https://github.com/jgraph/drawio-desktop/releases/latest/download/'"$actual_filename" -Lo "$DRAWIO_TMP/drawio.AppImage"
+# Move the file to the extra directory
+mv "$DRAWIO_TMP/drawio.AppImage" "$HOME/bin/extra/drawio.AppImage"
+chmod +x "$HOME/bin/extra/drawio.AppImage"
+# Link the file to the ln directory
+ln -sf "$HOME/bin/extra/drawio.AppImage" "$HOME/bin/ln/drawio"
+
+# Generate a desktop entry
+new_desktop "$HOME/bin/ln/drawio" "drawio" "Diagramming tool"
+
+if [ -n "$DRAWIO_TMP" ] ; then
+    if [ "$DRAWIO_TMP" != "/" ] ; then
+        rm -rf "$DRAWIO_TMP"
+    else
+        echo "Error: DRAWIO_TMP is /, not removing. (how did this happen??)" >&2
+    fi
+fi

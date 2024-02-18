@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+if [ -e "$HOME/bin/ln/yt-dlp" ] ; then
+    echo "${GREEN}yt-dlp is already installed.${RESET}" >&2
+    exit 0
+fi
+
+# Get ytdlp
+echo "${BLUE}acquiring yt-dlp...${RESET}" >&2
+curl 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp' -Lo "$HOME/bin/ln/yt-dlp"
+chmod +x "$HOME/bin/ln/yt-dlp"

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+echo "${BLUE}acquiring tools necessary for the rest of the installation...${RESET}" >&2
+JQ_TMP=$(mktemp -d)
+
+curl 'https://github.com/jqlang/jq/releases/latest/download/jq-linux64' -L -o "$JQ_TMP/jq"
+chmod +x "$JQ_TMP/jq"
+curl 'https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64' -L -o "$JQ_TMP/yq"
+chmod +x "$JQ_TMP/yq"
+mv "$JQ_TMP/jq" "$HOME/bin/ln/jq"
+mv "$JQ_TMP/yq" "$HOME/bin/ln/yq"
+if ! which jq >/dev/null ; then
+    echo "Error: jq installation failed. Check PATH." >&2
+    exit 1
+fi
+if ! which yq >/dev/null ; then
+    echo "Error: yq installation failed. Check PATH." >&2
+    exit 1
+fi
+if [ -n "$JQ_TMP" ] ; then
+    if [ "$JQ_TMP" != "/" ] ; then
+        rm -rf "$JQ_TMP"
+    else
+        echo "Error: JQ_TMP is /, not removing. (how did this happen??)" >&2
+    fi
+fi

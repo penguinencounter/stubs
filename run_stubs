@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+RESTORE=$(pwd)
+panic() {
+    cd "$RESTORE" || exit 2
+    exit 1
+}
+
+GREEN=$(tput setaf 2)
+RED=$(tput setaf 1)
+BLUE=$(tput setaf 4)
+RESET=$(tput sgr0)
+export GREEN; export RED; export BLUE; export RESET
+
+cd "$HOME" || panic
+mkdir -p bin
+cd "bin" || panic
+mkdir -p ln
+mkdir -p launchers
+mkdir -p extra
+
+# Add the ln directory to $PATH
+if ! echo "$PATH" | grep -q "$HOME/bin/ln" ; then
+    # shellcheck disable=SC2016
+    path_template='export PATH="$HOME/bin/ln:$PATH"'
+    if grep -q "$path_template" "$HOME/.bashrc" ; then
+        echo "${RED}error: You need to reload your .bashrc to update the environment.${RESET}" >&2
+        echo -n "${RED} (ensuring the installation environment is correct..." >&2
+        export PATH="$HOME/bin/ln:$PATH"
+        echo "ok)${RESET}" >&2
+    else
+        if ! [ -e "$HOME/.bashrc" ] ; then
+            echo "${RED}Error: $HOME/.bashrc does not exist${RESET}" >&2
+            panic
+        fi
+        echo "$path_template" >> "$HOME/.bashrc"
+        # do it for this session now
+        export PATH="$HOME/bin/ln:$PATH"
+        # give the user some instructions
+        echo "${BLUE}info: added $HOME/bin/ln to PATH. do 'source ~/.bashrc' to update your environment.${RESET}" >&2
+    fi
+fi
+
+for i in "$RESTORE/stubs/"* ; do
+    if ! [ -e "$i" ] ; then
+        echo "${RED}Error: $i does not exist${RESET}" >&2
+        continue
+    fi
+    if ! head -1 "$i" | grep -q '^#!/usr/bin/env bash'; then
+        continue
+    fi
+    echo "${GREEN}running $i${RESET}" >&2
+
+    pushd "$RESTORE/stubs" > /dev/null|| panic
+    if ! $i ; then
+        echo "${RED}Error: $i failed.${RESET}" >&2
+        read -p "${RED}Continue? [y/N] ${RESET}" -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            panic
+        fi
+    fi
+    popd > /dev/null || panic
+done
+
+cd "$RESTORE" || panic

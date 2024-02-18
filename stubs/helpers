@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+
+new_desktop() {
+    TargetFile="$1"
+    Name="$2"
+    Comment="$3"
+
+    Category="$4"
+
+    if [ -z "$Category" ] ; then
+        Category="Application"
+    fi
+    read -r -d '' DesktopEntry <<EOF
+[Desktop Entry]
+Name=$Name
+Comment=$Comment
+Exec=$TargetFile
+Icon=$HOME/bin/launchers/$(basename "$TargetFile").png
+EOF
+    echo "$DesktopEntry" > "$HOME/bin/launchers/$(basename "$TargetFile").desktop"
+    chmod +x "$HOME/bin/launchers/$(basename "$TargetFile").desktop"
+    mkdir -p "$HOME/.local/share/applications"
+    ln -sf "$HOME/bin/launchers/$(basename "$TargetFile").desktop" "$HOME/.local/share/applications"
+}
