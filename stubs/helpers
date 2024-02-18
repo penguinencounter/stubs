@@ -13,20 +13,25 @@ new_desktop() {
     if [ -z "$Category" ] ; then
         Category=""
     fi
+
     read -r -d '' DesktopEntry <<EOF
 [Desktop Entry]
 Name=$Name
 Comment=$Comment
 Exec=$TargetFile
-Icon=$HOME/bin/launchers/$(basename "$TargetFile").png
 Type=Application
 Version=1.0
 Categories=$Category;
 Terminal=false
 StartupWMClass=$FlatName
 StartupNotify=true
+
 EOF
-    echo "$DesktopEntry" > "$HOME/bin/launchers/$(basename "$TargetFile").desktop"
+    desktop_file="$HOME/bin/launchers/$(basename "$TargetFile").desktop"
+    echo "$DesktopEntry" > "$desktop_file"
+    if [ -e "$HOME/bin/launchers/$(basename "$TargetFile").png" ]; then
+        echo "Icon=$HOME/bin/launchers/$(basename "$TargetFile").png" >> "$desktop_file"
+    fi
     chmod +x "$HOME/bin/launchers/$(basename "$TargetFile").desktop"
     mkdir -p "$HOME/.local/share/applications"
     ln -sf "$HOME/bin/launchers/$(basename "$TargetFile").desktop" "$HOME/.local/share/applications"
