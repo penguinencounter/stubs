@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+if [ -e "$HOME/bin/jdk17" ] ; then
+  echo "${GREEN}jdk 17 is already installed.${RESET}" >&2
+  exit 0
+fi
+
+echo "${BLUE}acquiring JDK 17...${RESET}"
+
+JDK_TMP=$(mktemp -d)
+PACK_TARGET="$JDK_TMP/package.tar.gz"
+
+curl 'https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse' -Lo "$PACK_TARGET"
+
+echo "${BLUE}unpacking JDK 17...${RESET}"
+pushd "$JDK_TMP" || exit 1
+tar xzf "$PACK_TARGET"
+popd || exit 1
+
+echo "${BLUE}moving JDK 17...${RESET}"
+OUTPATH="$HOME/bin/jdk17"
+mv "$JDK_TMP/"jdk-* "$OUTPATH"
+LNPATH="$HOME/bin/ln"
+ln -s "$OUTPATH/bin/java" "$LNPATH/java"
+ln -s "$OUTPATH/bin/javac" "$LNPATH/javac"
+ln -s "$OUTPATH/bin/jshell" "$LNPATH/jshell"
+
+echo "${GREEN}cleaning up${RESET}"
+if [ -n "$JDK_TMP" ] ; then
+  if [ "$JDK_TMP" != "/" ] ; then
+    rm -rf "$JDK_TMP"
+  else
+    echo "Not deleting the root dir. lololol"
+  fi
+fi
