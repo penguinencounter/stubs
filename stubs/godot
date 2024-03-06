@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+source "helpers"
+
+if [ -e "$HOME/bin/ln/godot4" ] ; then
+  echo "${GREEN}godot 4 is already installed.${RESET}" >&2
+  exit 0
+fi
+
+GODOT_TMP=$(mktemp -d)
+echo "${BLUE}acquiring godot 4 archive${RESET}" >&2
+curl 'https://github.com/godotengine/godot/releases/download/4.2.1-stable/Godot_v4.2.1-stable_linux.x86_64.zip' -Lo "$GODOT_TMP/godot4.zip"
+# unpack
+UNPACKDIR="$GODOT_TMP/package"
+mkdir -p "$UNPACKDIR"
+unzip "$GODOT_TMP/godot4.zip" -d "$UNPACKDIR"
+SRCFILE=$(echo "$UNPACKDIR/"*)
+TARGETPATH="$HOME/bin/ln/godot4"
+cp "$SRCFILE" "$TARGETPATH"
+chmod +x "$TARGETPATH"
+
+new_desktop "$TARGETPATH" "Godot 4" "Open-source game engine"
+if [ -n "$GODOT_TMP" ] ; then
+  if [ "$GODOT_TMP" != "/" ] ; then
+    rm -rf "$GODOT_TMP"
+  else
+    echo "Not deleting the root dir."
+  fi
+fi

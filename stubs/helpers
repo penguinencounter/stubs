@@ -35,4 +35,5 @@ EOF
     chmod +x "$HOME/bin/launchers/$(basename "$TargetFile").desktop"
     mkdir -p "$HOME/.local/share/applications"
     ln -sf "$HOME/bin/launchers/$(basename "$TargetFile").desktop" "$HOME/.local/share/applications"
+    echo "${GREEN}New desktop entry created: $Name${RESET}" >&2
 }
